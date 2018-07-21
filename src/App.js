@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import kurento from 'kurento-utils';
 import logo from './logo.svg';
 import './App.css';
+import io from 'socket.io-client';
+const socket = io('http://localhost:7777');
 
 class App extends Component {
 
@@ -9,21 +11,36 @@ class App extends Component {
     super();
     this.video = React.createRef();
     this.webRtcPeer = null;
-    this.ws =  new WebSocket('wss://5e1b6646.ngrok.io/one2many');
+    // this.ws =  new WebSocket('wss://localhost:8443/one2many');
   }
 
   componentDidMount () {
-    this.ws.onmessage = (message) => {
-      if (message) {
-        const parsedMessage = JSON.parse(message.data);
-        console.log(parsedMessage);
-        return {
-          'presenterResponse' : () => this.presenterResponse(parsedMessage),
-          'viewerResponse'    : () => this.viewerResponse(parsedMessage),
-          'iceCandidate'      : () => this.webRtcPeer.addIceCandidate(parsedMessage.candidate),
-        }[parsedMessage.id]();
-      }
-    }
+    // this.ws.onmessage = (message) => {
+    //   if (message) {
+    //     const parsedMessage = JSON.parse(message.data);
+    //     console.log(parsedMessage);
+    //     return {
+    //       'presenterResponse' : () => this.presenterResponse(parsedMessage),
+    //       'viewerResponse'    : () => this.viewerResponse(parsedMessage),
+    //       'iceCandidate'      : () => this.webRtcPeer.addIceCandidate(parsedMessage.candidate),
+    //     }[parsedMessage.id]();
+    //   }
+    // }
+
+    socket.on('iceCandidate', ({ candidate }) => {
+      console.log(candidate);
+      this.webRtcPeer.addIceCandidate(candidate)
+    })
+
+    socket.on('presenterResponse', (message) => {
+      console.log(message);
+      this.presenterResponse(message);
+    })
+
+    socket.on('viewerResponse', (message) => {
+      console.log(message);
+      this.viewerResponse(message);
+    })
   }
 
   presenterResponse = (message) => {
@@ -46,32 +63,30 @@ class App extends Component {
 
   sendMessage = (message) => {
     const jsonMessage = JSON.stringify(message);
-    this.ws.send(jsonMessage);
+    // this.ws.send(jsonMessage);
   };
 
   onIceCandidate = (candidate) => {
-    const message = {
-      id : 'onIceCandidate',
+    socket.emit('onIceCandidate', {
       candidate,
-    };
-    this.sendMessage(message);
+      room : 'test',
+    })
   };
 
   offerPresenter = (err, sdpOffer) => {
-    const message = {
-      id : 'presenter',
+    socket.emit('presenter', {
       sdpOffer,
-    };
-    this.sendMessage(message);
+      room: 'test',
+    })
+
   };
 
   offerViewer = (err, sdpOffer) => {
     console.log(err);
-    const message = {
-      id : 'viewer',
+    socket.emit('viewer', {
       sdpOffer,
-    };
-    this.sendMessage(message);
+      room: 'test',
+    })
   };
 
   createRoom = () => {
@@ -115,7 +130,7 @@ class App extends Component {
         </header>
 
         <div>
-          <video ref={this.video} />
+          <video ref={this.video} autoPlay />
           <button onClick={this.createRoom}>Create Room</button>
           <button onClick={this.joinRoom}>Join Room</button>
           <button>Close</button>
