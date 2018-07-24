@@ -3,7 +3,7 @@ import kurento from 'kurento-utils';
 import logo from './logo.svg';
 import './App.css';
 import io from 'socket.io-client';
-const socket = io('http://localhost:7777');
+const socket = io('https://live.devarenaedge.com');
 
 class App extends Component {
 
@@ -25,7 +25,7 @@ class App extends Component {
     //       'iceCandidate'      : () => this.webRtcPeer.addIceCandidate(parsedMessage.candidate),
     //     }[parsedMessage.id]();
     //   }
-    // }
+    // }~
 
     socket.on('iceCandidate', ({ candidate }) => {
       console.log(candidate);
